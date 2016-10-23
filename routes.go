@@ -1,4 +1,4 @@
-package blackout
+package tpi
 
 import (
 	"net/http"
@@ -40,7 +40,7 @@ var routes = Routes{
 	},
 	Route{
 		"Delete",
-		"GET",
+		"POST",
 		"/delete",
 		Delete,
 	},

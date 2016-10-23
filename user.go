@@ -6,10 +6,10 @@ import (
 )
 
 type Counter struct {
-	Venues   int64 `json:"venues"`
-	Thalis   int64 `json:"thalis"`
-	Visitors int64 `json:"visitors"`
-	Users    int64 `json:"users"`
+	Users  int64 `json:"users"`
+	Venues int64 `json:"venues"`
+	Thalis int64 `json:"thalis"`
+	Datas  int64 `json:"datas"`
 }
 
 type User struct {

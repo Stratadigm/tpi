@@ -1,5 +1,6 @@
 <A name="toc0_1" title="Thali Price Index"/>
-# Thali Price Index is a cost of living index for cities across India using user contributed / owned data. TPI v1 focuses on the price of a thali while v2 will focus on apartment rentals. In theory the platform can be extended to cover all sorts of price data which is otherwise difficult to obtain. 
+##  Thali Price Index ##
+A cost of living index for cities across India using user contributed / owned data. TPI v1 focuses on the price of a thali (meal) while v2 will focus on apartment rentals. In theory the platform can be extended to cover all sorts of price data which is otherwise difficult to obtain. 
 
 ##Contents     
 **<a href="toc1_1">Methodology</a>**  
@@ -58,17 +59,20 @@ In v1 there's three data structures of interest:
         Thalis []Thali
 
 + Data
-        Tha Thali
-        Ven Venue
-        Time time.Time
-        Cntrbtr Contributor 
+        TThali Thali
+        TVen Venue
+        SubmitTime time.Time
+        TUser User
         Verfied bool
         Accepted bool
 
 User -> Data = One-to-many
 Venue -> Thali = One-to-many
 
-We need a appengine datastore access structure and also a Postgres or Mongo access structure for deployment in case of move away from Appengine. All in Go.
+We need a appengine datastore access structure and also a Postgres and/or Mongo access structure for deployment in case of move away from Appengine. All in Go.
+
+In the appengine datastore version, Data is slightly modified to include Id of User rather than a User (see appengine datastore reference). 
+
 
 <A name="toc1_3" title="JSON API" />
 ## Endpoints ##
@@ -79,7 +83,7 @@ Data contribution, edit & retrieval is done via a simple HTTP/S REST JSON API.
 <A name="toc1_4" title="App & Browser" />
 ## App  ##
 
-Mobile app needs to be very simple. Should use location and camera for submission of the data. 
+Mobile app needs to be very simple. Should use location and camera for posting data. 
 
 Preferable to avoid any and all javascript in browser version. Need to consider data contributors with older phones/computers so app needs to be very basic. Should have some basic user validationinterface for Google/Facebook oAuth2, some basic data input functionality and ability to post that data to a server. Ability to get data and display tpi at user's location is secondary. 
 
@@ -98,9 +102,10 @@ Spammers should gain negative reputation for every unverified/unaccepted data po
 
 <A name="toc1_5" title="References" />
 ## References ##
-[Writing images to templates](http://www.sanarias.com/blog/1214PlayingwithimagesinHTTPresponseingolang)
-[Appengine datastore api](https://godoc.org/google.golang.org/appengine/datastore)
-[GCP Appengine Console](https://console.cloud.google.com/appengine?project=tpi)
-[Method: apps.repair](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps/repair)
++ [Writing images to templates](http://www.sanarias.com/blog/1214PlayingwithimagesinHTTPresponseingolang)
++ [Appengine datastore api](https://godoc.org/google.golang.org/appengine/datastore)
++ [GCP Appengine Console](https://console.cloud.google.com/appengine?project=tpi)
++ [Method: apps.repair](https://cloud.google.com/appengine/docs/admin-api/reference/rest/v1/apps/repair)
++ [Google Cloud Platform Datastore Reference](https://cloud.google.com/appengine/docs/go/datastore/reference)
 
 

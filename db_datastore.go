@@ -1,8 +1,6 @@
 package tpi
 
 import (
-	// "appengine"
-	// "appengine/datastore"
 	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
@@ -20,14 +18,14 @@ type DS struct {
 }
 
 type DSErr struct {
-	When time.Time
-	What string
+	When time.Time `json:"when"`
+	What string    `json:"what"`
 }
 
 var (
 	_        UserDatabase = &DS{}
 	_        error        = &DSErr{}
-	entities              = map[string]string{"User": "guest"}
+	entities              = map[string]string{"User": "user", "Venue": "venue", "Thali": "thali", "Data": "data"}
 	total                 = int64(0)
 )
 
@@ -41,7 +39,7 @@ func NewDS(r *http.Request) *DS {
 func (ds *DS) datastoreKey(id int64) *datastore.Key {
 
 	c := ds.ctx
-	return datastore.NewKey(c, "guest", "", id, nil)
+	return datastore.NewKey(c, "user", "", id, nil)
 
 }
 
@@ -53,6 +51,7 @@ func (ds *DS) datastoreKeyah(entity string, id ...int64) *datastore.Key {
 	} else {
 		return datastore.NewIncompleteKey(c, entity, nil)
 	}
+
 }
 
 //Less crude interface key gen
@@ -90,17 +89,88 @@ func (ds *DS) dsChildKey(t reflect.Type, id int64, pk *datastore.Key) *datastore
         c := ds.ctx
         k := ds.dsKey(reflect.TypeOf(v).Elem(), reflect.ValueOf(v).Elem().Field(0).Interface())
         if k == nil {
-                return 0, fmt.Errorf("Add guesty error - key create error")
+                return 0, fmt.Errorf("Add usery error - key create error")
         }
         _, err := datastore.Put(c, k, v)
         if err != nil {
-                return 0, fmt.Errorf("Add guesty error - datastore put error")
+                return 0, fmt.Errorf("Add usery error - datastore put error")
         }
         return k.IntID(), nil
 
 }*/
 
-// Add creates an appropriate ds key for the entity passed via interface{} with the optional int64 used as Id of key
+/* Interface */
+
+//List returns a slice of v
+func (ds *DS) List(v interface{}) error {
+
+	if reflect.TypeOf(v).Kind() != reflect.Ptr {
+		return DSErr{When: time.Now(), What: "Get error: pointer reqd"}
+	}
+	c := ds.ctx
+	s := reflect.TypeOf(v).Elem()
+	cs := reflect.MakeSlice(s, 0, 1e6)
+	entity := reflect.TypeOf(v).Elem().Name()
+	q := datastore.NewQuery(entities[entity]).Order("Id")
+	_, err := q.GetAll(c, &cs)
+	if err != nil {
+		//return nil, fmt.Errorf("Get %s list error", entity)
+		return DSErr{When: time.Now(), What: fmt.Sprintf("Get %s list error", entity)}
+	}
+	//for i, k := range ks {
+	//	cs[i].Id = k.IntID()
+	//}
+	reflect.ValueOf(v).Elem().Set(cs)
+	return nil
+
+}
+
+//Create populates entity with appropriate fields including Id after updating counter. Returns nil if there was an error retrieving/updating counter or populating entity. Calls Add with Id to put in datastore.
+func (ds *DS) Create(v interface{}) error {
+
+	if reflect.TypeOf(v).Kind() != reflect.Ptr {
+		return DSErr{When: time.Now(), What: "Create error: pointer reqd"}
+	}
+	s := reflect.TypeOf(v).Elem()
+	cs := reflect.New(s)
+	if _, ok := entities[s.Name()]; !ok {
+		log.Errorf(ds.ctx, "Create entity no such entity: %v", s.Name())
+		return DSErr{When: time.Now(), What: "Create error: no such entity " + s.Name()}
+	}
+	counter := ds.GetCounter()
+	if counter != nil {
+		switch s.Name() {
+		case "User":
+			counter.Users++
+			cs.FieldByName("Id").SetInt(counter.Users)
+		case "Venue":
+			counter.Venues++
+			cs.FieldByName("Id").SetInt(counter.Venues)
+		case "Thali":
+			counter.Thalis++
+			cs.FieldByName("Id").SetInt(counter.Thalis)
+		case "Data":
+			counter.Datas++
+			cs.FieldByName("Id").SetInt(counter.Datas)
+		default:
+			log.Errorf(ds.ctx, "Create entity no such entity: %v", s.Name())
+			return DSErr{When: time.Now(), What: "Create error: no such entity " + s.Name()}
+		}
+		err := ds.PutCounter(counter)
+		if err != nil {
+			log.Errorf(ds.ctx, "Create user Put counter: %v", err)
+			return err
+		}
+		v = cs.Interface()
+		return nil
+	} else {
+		log.Errorf(ds.ctx, "Create user nil counter: ")
+		return DSErr{time.Now(), "Create entity nil counter"}
+	}
+
+}
+
+// Add creates an appropriate ds key for the entity passed via interface{} with the optional int64 used as Id of key and puts into datastore
 func (ds *DS) Add(v interface{}, n ...int64) (int64, error) {
 
 	c := ds.ctx
@@ -157,6 +227,7 @@ func (ds *DS) AddwParent(parent interface{}, child interface{}, offset int64) er
 
 }
 
+//Get retrieves from datastore the value of v which must be a pointer & have it's Id field set. Get populates the rest of the properties/fields of v.
 func (ds *DS) Get(v interface{}) error {
 
 	if reflect.TypeOf(v).Kind() != reflect.Ptr {
@@ -189,15 +260,41 @@ func (ds *DS) Get(v interface{}) error {
 
 }
 
-//User specific
+//Update updates the entity in the datastore. Must have Id field set. Returns nil (success) or error
+func (ds *DS) Update(v interface{}) error {
+
+	c := ds.ctx
+	k := ds.datastoreKey(reflect.ValueOf(v).FieldByName("Id").Int())
+	_, err := datastore.Put(c, k, v)
+	if err != nil {
+		return fmt.Errorf("Updating error %v", err)
+	}
+	return nil
+
+}
+
+func (ds *DS) Delete(id int64) error {
+
+	c := ds.ctx
+	k := ds.datastoreKey(id)
+	if err := datastore.Delete(c, k); err != nil {
+		return fmt.Errorf("Deleting error")
+	}
+	return nil
+
+}
+
+/* User specific */
+
+//ListUsers returns a slice of *User
 func (ds *DS) ListUsers() ([]*User, error) {
 
 	c := ds.ctx
 	cs := make([]*User, 0)
-	q := datastore.NewQuery("guest").Order("Id")
+	q := datastore.NewQuery("user").Order("Id")
 	ks, err := q.GetAll(c, &cs)
 	if err != nil {
-		return nil, fmt.Errorf("Get guesty list error")
+		return nil, fmt.Errorf("Get usery list error")
 	}
 	for i, k := range ks {
 		cs[i].Id = k.IntID()
@@ -206,12 +303,12 @@ func (ds *DS) ListUsers() ([]*User, error) {
 
 }
 
-//AddUser adds guest which must already have Id (from CreateUser) to be used as datastore key id. Doesn't touch counter. Returns either (id, nil) / (0, error)
-func (ds *DS) AddUser(guesty *User) (int64, error) {
+//AddUser adds user which must already have Id (from CreateUser) to be used as datastore key id. Doesn't touch counter. Returns either (id, nil) / (0, error)
+func (ds *DS) AddUser(usery *User) (int64, error) {
 
 	c := ds.ctx
-	k := ds.datastoreKey(guesty.Id)
-	_, err := datastore.Put(c, k, guesty)
+	k := ds.datastoreKey(usery.Id)
+	_, err := datastore.Put(c, k, usery)
 	if err != nil {
 		return 0, err
 	}
@@ -219,6 +316,7 @@ func (ds *DS) AddUser(guesty *User) (int64, error) {
 
 }
 
+//GetUser uses Id to get and return User, nil (success) or nil, error
 func (ds *DS) GetUser(id int64) (*User, error) {
 
 	c := ds.ctx
@@ -232,10 +330,11 @@ func (ds *DS) GetUser(id int64) (*User, error) {
 
 }
 
+//GetUserwEmail uses unique email to return User and nil (success) or nil, error
 func (ds *DS) GetUserwEmail(email string) (*User, error) {
 
 	c := ds.ctx
-	q := datastore.NewQuery("guest").Filter("Email=", email)
+	q := datastore.NewQuery("user").Filter("Email=", email)
 	cst := make([]*User, 0)
 	spk, err := q.GetAll(c, &cst) // *[]*User
 	if err != nil {
@@ -248,10 +347,11 @@ func (ds *DS) GetUserwEmail(email string) (*User, error) {
 
 }
 
+//GetUserKey uses unique email to return User, Key and nil (sucess) or nil, nil, error
 func (ds *DS) GetUserKey(email string) (*User, *datastore.Key, error) {
 
 	c := ds.ctx
-	q := datastore.NewQuery("guest").Filter("Email=", email)
+	q := datastore.NewQuery("user").Filter("Email=", email)
 	cst := &User{}
 	k, err := q.GetAll(c, cst)
 	if err != nil {
@@ -261,11 +361,12 @@ func (ds *DS) GetUserKey(email string) (*User, *datastore.Key, error) {
 
 }
 
-func (ds *DS) UpdateUser(guesty *User) error {
+//UpdateUser puts the User in the datastore. Returns nil (success) or error
+func (ds *DS) UpdateUser(usery *User) error {
 
 	c := ds.ctx
-	k := ds.datastoreKey(guesty.Id)
-	_, err := datastore.Put(c, k, guesty)
+	k := ds.datastoreKey(usery.Id)
+	_, err := datastore.Put(c, k, usery)
 	if err != nil {
 		return fmt.Errorf("Updating error %v", err)
 	}
@@ -289,13 +390,13 @@ func (ds *DS) CreateUser() *User {
 
 	counter := ds.GetCounter()
 	if counter != nil {
-		counter.Rsvps++
+		counter.Users++
 		err := ds.PutCounter(counter)
 		if err != nil {
-			log.Errorf(ds.ctx, "Create guest Put counter: %v", err)
+			log.Errorf(ds.ctx, "Create user Put counter: %v", err)
 			return nil
 		}
-		return NewUser(counter.Rsvps)
+		return NewUser(counter.Users)
 	} else {
 		return nil
 	}
@@ -345,12 +446,13 @@ func (ds *DS) ListLocs() ([]*Loc, error) {
 
 }
 
-//Counter specific
+/* Counter specific */
+
 //Get Counter gets the singleton counter from datastore. Doesn't try to create. Returns the counter or nil
 func (ds *DS) GetCounter() *Counter {
 
 	c := ds.ctx
-	k := ds.datastoreKeyah("counter", 1234567890)
+	k := ds.datastoreKeyah("counter", 999999)
 	counter := &Counter{}
 	err := datastore.Get(c, k, counter)
 	if err != nil {
@@ -365,8 +467,8 @@ func (ds *DS) GetCounter() *Counter {
 func (ds *DS) CreateCounter() error {
 
 	c := ds.ctx
-	counter := &Counter{Rsvps: int64(0), Visitors: int64(0), Confirms: int64(0)}
-	k := ds.datastoreKeyah("counter", 1234567890)
+	counter := &Counter{Venues: int64(0), Datas: int64(1e9), Users: int64(1e7), Thalis: int64(1e6)}
+	k := ds.datastoreKeyah("counter", 999999)
 	_, err := datastore.Put(c, k, counter)
 	if err != nil {
 		log.Errorf(c, "Couldn't create counter: %v", err)
@@ -376,6 +478,7 @@ func (ds *DS) CreateCounter() error {
 
 }
 
+//PutCounter puts the counter in datastore and returns nil (success) or error
 func (ds *DS) PutCounter(counter *Counter) error {
 
 	c := ds.ctx
