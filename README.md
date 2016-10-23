@@ -38,33 +38,33 @@ After filtering outliers, the price index will be based on a weighted average of
 In v1 there's three data structures of interest:
 
 + User
-        Name string
-        Email string
-        Confirmed bool
-        Points []Data // data points contributed
-        Rep int
-        JDte time.Time
+        + Name string
+        + Email string
+        + Confirmed bool
+        + Points []Data // data points contributed
+        + Rep int
+        + JDte time.Time
 
 + Thali
-        Target int // 1-4 target customer profile
-        Limited bool
-        Region int // 1-3 target cuisine
-        Price float64 //
-        Photo image
+        + Target int // 1-4 target customer profile
+        + Limited bool
+        + Region int // 1-3 target cuisine
+        + Price float64 //
+        + Photo image
 
 + Venue
-        Name string
-        Latitude float64
-        Longitude float64
-        Thalis []Thali
+        + Name string
+        + Latitude float64
+        + Longitude float64
+        + Thalis []Thali
 
 + Data
-        TThali Thali
-        TVen Venue
-        SubmitTime time.Time
-        TUser User
-        Verfied bool
-        Accepted bool
+        + TThali Thali
+        + TVen Venue
+        + SubmitTime time.Time
+        + TUser User
+        + Verfied bool
+        + Accepted bool
 
 User -> Data = One-to-many
 Venue -> Thali = One-to-many
