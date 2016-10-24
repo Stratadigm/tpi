@@ -23,7 +23,7 @@ var routes = Routes{
 	Route{
 		"Create",
 		"POST",
-		"/create",
+		"/create/user",
 		Create,
 	},
 	Route{
