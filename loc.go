@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"golang.org/x/net/context"
 	_ "google.golang.org/appengine"
+	"google.golang.org/appengine/log"
 	"google.golang.org/appengine/urlfetch"
 	"net"
 	"net/http"
@@ -29,13 +30,15 @@ func GetLoc(ctx context.Context, host string) (*Loc, error) {
 	client := urlfetch.Client(ctx)
 	resp, err := client.Get("https://freegeoip.net/json/" + host)
 	if err != nil {
+		log.Errorf(ctx, "Client Get %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
-	var loc *Loc
+	loc := &Loc{}
 	dcdr := json.NewDecoder(resp.Body)
 	err = dcdr.Decode(loc)
 	if err != nil {
+		log.Errorf(ctx, "Client Get json decode %v", err)
 		return nil, err
 	}
 	return loc, nil
@@ -48,6 +51,7 @@ func GetIp(r *http.Request) string {
 	} else {
 		host, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
+			//log.Errorf(ctx, "GetIp host part: %v", err)
 			return ""
 		}
 		return host

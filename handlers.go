@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	_ "fmt"
-	"github.com/gorilla/schema"
+	_ "github.com/gorilla/schema"
 	_ "golang.org/x/oauth2"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/log"
@@ -47,6 +47,112 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 //Create uses data in JSON post to create a User/Venue/Thali/Data
 func Create(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	c := appengine.NewContext(r)
+	var g1 interface{}
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	adsc := &DS{ctx: c}
+	//Need to make sure counter is alive before creating/adding guests
+	counter := adsc.GetCounter()
+	if counter == nil {
+		err := adsc.CreateCounter()
+		if err != nil {
+			log.Errorf(c, "Create create counter: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err := enc.Encode(&DSErr{time.Now(), "Create create counter " + err.Error()}); err != nil {
+				log.Errorf(c, "Create json encode: %v", err)
+				return
+			}
+			return
+		}
+	}
+	switch r.URL.Path {
+	case "/create/user":
+		g1 = &User{}
+		if err = adsc.Create(g1); err != nil {
+			log.Errorf(c, "Create user: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err := enc.Encode(&DSErr{time.Now(), "Create user " + err.Error()}); err != nil {
+				log.Errorf(c, "Create json encode: %v", err)
+				return
+			}
+			return
+		}
+	case "/create/venue":
+		g1 = &Venue{}
+		if err = adsc.Create(g1); err != nil {
+			log.Errorf(c, "Create venue: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err := enc.Encode(&DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
+				log.Errorf(c, "Create json encode: %v", err)
+				return
+			}
+			return
+		}
+	case "/create/thali":
+		g1 = &Thali{}
+		if err = adsc.Create(g1); err != nil {
+			log.Errorf(c, "Create thali: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err := enc.Encode(&DSErr{time.Now(), "Create thali " + err.Error()}); err != nil {
+				log.Errorf(c, "Create json encode DSErr: %v", err)
+				return
+			}
+			return
+		}
+	case "/create/data":
+		g1 = &Data{}
+		if err = adsc.Create(g1); err != nil {
+			log.Errorf(c, "Create data: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err := enc.Encode(&DSErr{time.Now(), "Create data " + err.Error()}); err != nil {
+				log.Errorf(c, "Create json encode DSErr: %v", err)
+				return
+			}
+			return
+		}
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		if err := enc.Encode(&DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
+			log.Errorf(c, "Create json encode DSErr: %v", err)
+			return
+		}
+		return
+	}
+	decoder := json.NewDecoder(r.Body)
+	defer r.Body.Close()
+	err = decoder.Decode(g1)
+	if err != nil {
+		log.Errorf(c, "Couldn't decode posted json: %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		if err := enc.Encode(&DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
+			log.Errorf(c, "Create json encode DSErr: %v", err)
+			return
+		}
+		return
+	}
+	if id, err := adsc.Add(g1); err != nil {
+		log.Errorf(c, "Couldn't add entity: %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		if err := enc.Encode(&DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
+			log.Errorf(c, "Create json encode DSErr: %v", err)
+			return
+		}
+		return
+	} else {
+		w.WriteHeader(http.StatusCreated)
+		if err := enc.Encode(&DSErr{time.Now(), "Created entity " + string(id)}); err != nil {
+			log.Errorf(c, "Created json encode DSErr: %v", err)
+			return
+		}
+		return
+	}
+}
+
+//Create uses data in posted form to create a User/Venue/Thali/Data
+/*func Create(w http.ResponseWriter, r *http.Request) {
 
 	var err error
 	c := appengine.NewContext(r)
@@ -135,7 +241,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-}
+}*/
 
 //Retrieve gets the posted entity from datastore
 func Retrieve(w http.ResponseWriter, r *http.Request) {
