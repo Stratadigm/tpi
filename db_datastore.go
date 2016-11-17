@@ -142,16 +142,16 @@ func (ds *DS) Create(v interface{}) error {
 		switch s.Name() {
 		case "User":
 			counter.Users++
-			cs.FieldByName("Id").SetInt(counter.Users)
+			cs.Elem().FieldByName("Id").SetInt(counter.Users)
 		case "Venue":
 			counter.Venues++
-			cs.FieldByName("Id").SetInt(counter.Venues)
+			cs.Elem().FieldByName("Id").SetInt(counter.Venues)
 		case "Thali":
 			counter.Thalis++
-			cs.FieldByName("Id").SetInt(counter.Thalis)
+			cs.Elem().FieldByName("Id").SetInt(counter.Thalis)
 		case "Data":
 			counter.Datas++
-			cs.FieldByName("Id").SetInt(counter.Datas)
+			cs.Elem().FieldByName("Id").SetInt(counter.Datas)
 		default:
 			log.Errorf(ds.ctx, "Create entity no such entity: %v", s.Name())
 			return DSErr{When: time.Now(), What: "Create error: no such entity " + s.Name()}

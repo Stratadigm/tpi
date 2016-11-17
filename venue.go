@@ -10,7 +10,8 @@ type Venue struct {
 	//Latitude  float64 `json:"latitude" schema:"latitude"`
 	//Longitude float64 `json:"longitude" schema:"longitude"`
 	Location appengine.GeoPoint `json:"location" schema:"location"`
-	Thalis   []Thali            `json:"thalis"`
+	//Thalis   []Thali            `json:"thalis"`
+	//Thalis []int64 `json:"thalis"`
 }
 
 func NewVenue(id int64) *Venue {
