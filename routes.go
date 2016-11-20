@@ -50,4 +50,16 @@ var routes = Routes{
 		"/logs",
 		Logs,
 	},
+	Route{
+		"Users",
+		"GET",
+		"/users",
+		Users,
+	},
+	Route{
+		"Counters",
+		"GET",
+		"/counters",
+		Counters,
+	},
 }

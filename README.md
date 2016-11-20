@@ -35,7 +35,7 @@ After filtering outliers, the price index will be based on a weighted average of
 
 <A name="toc1_2" title="Data" />
 ## Data ##
-In v1 there's three data structures of interest:
+In v1 there's four data structures of interest:
 
 + User
     + Name string
@@ -78,6 +78,9 @@ In the appengine datastore version, Data is slightly modified to include Id of U
 ## Endpoints ##
 Data contribution, edit & retrieval is done via a simple HTTP/S REST JSON API. 
 
+https://thalipriceindex.appspot.com/user/create
+https://thalipriceindex.appspot.com/venue/create
+https://thalipriceindex.appspot.com/thali/create
 
 
 <A name="toc1_4" title="App & Browser" />

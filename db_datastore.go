@@ -125,14 +125,14 @@ func (ds *DS) List(v interface{}) error {
 
 }
 
-//Create populates entity with appropriate fields including Id after updating counter. Returns nil if there was an error retrieving/updating counter or populating entity. Calls Add with Id to put in datastore.
+//Create populates entity with appropriate fields including Id after updating counter. Returns nil if there was an error retrieving/updating counter or populating entity. Need to calls Add with Id to put in datastore.
 func (ds *DS) Create(v interface{}) error {
 
 	if reflect.TypeOf(v).Kind() != reflect.Ptr {
 		return DSErr{When: time.Now(), What: "Create error: pointer reqd"}
 	}
 	s := reflect.TypeOf(v).Elem()
-	cs := reflect.New(s)
+	//cs := reflect.New(s)
 	if _, ok := entities[s.Name()]; !ok {
 		log.Errorf(ds.ctx, "Create entity no such entity: %v", s.Name())
 		return DSErr{When: time.Now(), What: "Create error: no such entity " + s.Name()}
@@ -142,16 +142,21 @@ func (ds *DS) Create(v interface{}) error {
 		switch s.Name() {
 		case "User":
 			counter.Users++
-			cs.Elem().FieldByName("Id").SetInt(counter.Users)
+			reflect.ValueOf(v).Elem().FieldByName("Id").SetInt(counter.Users)
+			//cs.Elem().FieldByName("Id").SetInt(counter.Users)
+			//log.Errorf(ds.ctx, "Creating datastore key: %v", cs.Elem().FieldByName("Id").Int())
 		case "Venue":
 			counter.Venues++
-			cs.Elem().FieldByName("Id").SetInt(counter.Venues)
+			reflect.ValueOf(v).Elem().FieldByName("Id").SetInt(counter.Venues)
+			//cs.Elem().FieldByName("Id").SetInt(counter.Venues)
 		case "Thali":
 			counter.Thalis++
-			cs.Elem().FieldByName("Id").SetInt(counter.Thalis)
+			reflect.ValueOf(v).Elem().FieldByName("Id").SetInt(counter.Thalis)
+			//cs.Elem().FieldByName("Id").SetInt(counter.Thalis)
 		case "Data":
 			counter.Datas++
-			cs.Elem().FieldByName("Id").SetInt(counter.Datas)
+			reflect.ValueOf(v).Elem().FieldByName("Id").SetInt(counter.Datas)
+			//cs.Elem().FieldByName("Id").SetInt(counter.Datas)
 		default:
 			log.Errorf(ds.ctx, "Create entity no such entity: %v", s.Name())
 			return DSErr{When: time.Now(), What: "Create error: no such entity " + s.Name()}
@@ -161,7 +166,8 @@ func (ds *DS) Create(v interface{}) error {
 			log.Errorf(ds.ctx, "Create user Put counter: %v", err)
 			return err
 		}
-		v = cs.Interface()
+		//v = cs.Interface()
+		log.Errorf(ds.ctx, "Check interface Id: %v", reflect.ValueOf(v).Elem().FieldByName("Id").Int())
 		return nil
 	} else {
 		log.Errorf(ds.ctx, "Create user nil counter: ")
@@ -176,7 +182,8 @@ func (ds *DS) Add(v interface{}, n ...int64) (int64, error) {
 	c := ds.ctx
 	var k *datastore.Key
 	if len(n) == 0 { // for Counter
-		//k = ds.dsKey(reflect.TypeOf(v).Elem(), reflect.ValueOf(v).Elem().Field(0).Interface())
+		//log.Errorf(c, "Adding datastore key: %v", reflect.ValueOf(v).Elem().FieldByName("Id").Int())
+		//k = ds.dsKey(reflect.TypeOf(v).Elem(), reflect.ValueOf(v).Elem().FieldByName("Id").Int())
 		k = ds.dsKey(reflect.TypeOf(v).Elem())
 	} else { // if extra args are provided use as key ID
 		k = ds.dsKey(reflect.TypeOf(v).Elem(), n[0])
@@ -452,7 +459,7 @@ func (ds *DS) ListLocs() ([]*Loc, error) {
 func (ds *DS) GetCounter() *Counter {
 
 	c := ds.ctx
-	k := ds.datastoreKeyah("counter", 999999)
+	k := ds.datastoreKeyah("counter", 1234567890)
 	counter := &Counter{}
 	err := datastore.Get(c, k, counter)
 	if err != nil {
@@ -468,7 +475,7 @@ func (ds *DS) CreateCounter() error {
 
 	c := ds.ctx
 	counter := &Counter{Venues: int64(0), Datas: int64(1e9), Users: int64(1e7), Thalis: int64(1e6)}
-	k := ds.datastoreKeyah("counter", 999999)
+	k := ds.datastoreKeyah("counter", 1234567890)
 	_, err := datastore.Put(c, k, counter)
 	if err != nil {
 		log.Errorf(c, "Couldn't create counter: %v", err)

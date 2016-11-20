@@ -1,0 +1,17 @@
+
+
+        <div id="content" style="font-size:10px; height:1000px">
+                <div>
+                        <table class="table"><th>Users</th><th>Venues</th><th>Thalis</th><th>Datas</th>
+                                <tbody>
+                                        <tr>
+                                                <td>  {{.Users}} </td>
+                                                <td>  {{.Venues}} </td>
+                                                <td>  {{.Thalis}} </td>
+                                                <td> {{.Datas}} </td>
+                                        </tr>
+                                </tbody>
+                        </table>
+                </div>
+        </div>
+

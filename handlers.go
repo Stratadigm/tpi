@@ -9,18 +9,24 @@ import (
 	_ "github.com/gorilla/schema"
 	_ "golang.org/x/oauth2"
 	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 	"html/template"
 	_ "image/jpeg"
 	"net/http"
+	"reflect"
+	"strconv"
 	"time"
 )
 
 var (
-	tmpl_logs = template.Must(template.ParseFiles("templates/logs"))
+	tmpl_logs  = template.Must(template.ParseFiles("templates/logs"))
+	tmpl_users = template.Must(template.ParseFiles("templates/users"))
+	tmpl_cntrs = template.Must(template.ParseFiles("templates/counters"))
 )
 
 const recordsPerPage = 10
+const usersPerPage = 20
 
 type Render struct { //for most purposes
 	Average float64 `json:"average"`
@@ -45,7 +51,7 @@ func Index(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//Create uses data in JSON post to create a User/Venue/Thali/Data
+//Create uses data in JSON post to create a User/Venue/Thali/Data. Create first creates an empty entity & updates counter, then fills in fields using posted data and finally persists in datastore.
 func Create(w http.ResponseWriter, r *http.Request) {
 
 	var err error
@@ -54,7 +60,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	adsc := &DS{ctx: c}
-	//Need to make sure counter is alive before creating/adding guests
+	//Need to make sure counter is alive before creating/adding entities
 	counter := adsc.GetCounter()
 	if counter == nil {
 		err := adsc.CreateCounter()
@@ -121,6 +127,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	temp := reflect.ValueOf(g1).Elem().FieldByName("Id").Int()
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	err = decoder.Decode(g1)
@@ -133,7 +140,9 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if id, err := adsc.Add(g1); err != nil {
+	//Need to specify Id when adding to datastore because json.Decode posted user data wipes out Id information
+	reflect.ValueOf(g1).Elem().FieldByName("Id").SetInt(temp)
+	if id, err := adsc.Add(g1, temp); err != nil {
 		log.Errorf(c, "Couldn't add entity: %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
 		if err := enc.Encode(&DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
@@ -243,9 +252,10 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 }*/
 
-//Retrieve gets the posted entity from datastore
+//Retrieve gets list of entities of posted type from datastore
 func Retrieve(w http.ResponseWriter, r *http.Request) {
 
+	//var err error
 	c := appengine.NewContext(r)
 	log.Errorf(c, "Retrieve")
 	return
@@ -304,6 +314,70 @@ func Logs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tmpl_logs.Execute(w, data); err != nil {
+		log.Errorf(ctx, "Rendering template: %v", err)
+	}
+
+}
+
+//Users writes list of Users in html to the response writer
+func Users(w http.ResponseWriter, r *http.Request) {
+
+	ctx := appengine.NewContext(r)
+	var err error
+	var data struct {
+		Users []*User
+		Next  string
+		Prev  string
+	}
+
+	query := datastore.NewQuery("user").Order("Id")
+
+	offint := 0
+	if offset := r.FormValue("offset"); offset != "" {
+		offint, err = strconv.Atoi(offset)
+		if err != nil {
+			log.Errorf(ctx, "Reading user records offset: %v", err)
+		}
+		query = query.Limit(usersPerPage + offint).Offset(offint)
+	} else {
+		query = query.Limit(usersPerPage).Offset(0)
+	}
+
+	users := make([]*User, 0)
+	_, err = query.GetAll(ctx, &users)
+	if err != nil {
+		log.Errorf(ctx, "Datastore getall query: %v", err)
+	}
+
+	data.Users = users
+	data.Next = strconv.Itoa(offint + usersPerPage)
+	if offint == 0 {
+		data.Prev = strconv.Itoa(offint)
+	} else {
+		data.Prev = strconv.Itoa(offint - usersPerPage)
+	}
+
+	if err := tmpl_users.Execute(w, data); err != nil {
+		log.Errorf(ctx, "Rendering template: %v", err)
+	}
+
+}
+
+//Counters writes counter details in html to the response writer
+func Counters(w http.ResponseWriter, r *http.Request) {
+
+	ctx := appengine.NewContext(r)
+	var err error
+
+	query := datastore.NewQuery("counter")
+
+	cntr := make([]*Counter, 0)
+	_, err = query.GetAll(ctx, &cntr)
+	if err != nil {
+		log.Errorf(ctx, "Datastore getall query: %v", err)
+	}
+
+	if err := tmpl_cntrs.Execute(w, cntr[0]); err != nil {
 		log.Errorf(ctx, "Rendering template: %v", err)
 	}
 
