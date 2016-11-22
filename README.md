@@ -78,9 +78,34 @@ In the appengine datastore version, Data is slightly modified to include Id of U
 ## Endpoints ##
 Data contribution, edit & retrieval is done via a simple HTTP/S REST JSON API. 
 
-https://thalipriceindex.appspot.com/user/create
-https://thalipriceindex.appspot.com/venue/create
-https://thalipriceindex.appspot.com/thali/create
+##CREATE (POST ONLY)##
+https://thalipriceindex.appspot.com/create/user
+https://thalipriceindex.appspot.com/create/venue
+https://thalipriceindex.appspot.com/create/thali
+https://thalipriceindex.appspot.com/create/data
+
+Post JSON data, receive 200 OK if user/venue/thali/data created successfully
+
+##RETRIEVE (POST ONLY)##
+
+
+Post JSON data
+
+##UPDATE (POST ONLY)##
+
+
+##DELETE##
+
+
+##HTML TEMPLATES##
+
+HTML templates for logs and list of users/venues/thalis/data are available at:
+
+https://thalipriceindex.appspot.com/logs
+https://thalipriceindex.appspot.com/users
+https://thalipriceindex.appspot.com/venues
+https://thalipriceindex.appspot.com/thalis
+https://thalipriceindex.appspot.com/datas
 
 
 <A name="toc1_4" title="App & Browser" />
