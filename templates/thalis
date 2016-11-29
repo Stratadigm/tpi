@@ -5,17 +5,16 @@
 
         <div id="content" style="font-size:10px; height:1000px">
                 <div>
-                        <table class="table"><th>Id</th><th>Name</th><th>Email</th><th>Confirmed</th><th>Rep</th><th>JoinDate</th><th>Action</th>
+                        <table class="table"><th>Id</th><th>Target</th><th>Limited</th><th>Region</th><th>Price</th><th>Action</th>
                                 <tbody>
                                 {{range .List}}
                                         <tr>
                                                 <td>  {{.Id}} </td>
-                                                <td>  {{.Name}} </td>
-                                                <td> {{.Email}} </td>
-                                                <td> {{.Confirmed}} </td>
-                                                <td> {{.Rep}} </td>
-                                                <td> {{.JDte}} </td>
-                                                <td> <a href="/admin/edit/{{.Id}}"> Edit </a> </td>
+                                                <td>  {{.Target}} </td>
+                                                <td> {{.Limited}} </td>
+                                                <td> {{.Region}} </td>
+                                                <td> {{.Price}} </td>
+                                                <td> <a href="/upload/{{.Id}}"> Upload </a> </td>
                                         </tr>
                                 {{end}}
                                 </tbody>

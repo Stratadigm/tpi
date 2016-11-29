@@ -1,0 +1,13 @@
+{{define "bodystuff"}}
+        <form id="uploadform" name="uploadform" action="/upload/{{.Id}}" method="POST" enctype="multipart/form-data">
+                <ul class="center">
+                        <div class="field">
+                                <label>Image:</label>
+                                <input type="file" value="" name="image" style="width=100px;">
+                        </div>
+                        <div class="field">
+                                <input type="submit" value="Submit" class="button button-alt">
+                        </div>
+                </ul>
+        </form>
+{{end}}

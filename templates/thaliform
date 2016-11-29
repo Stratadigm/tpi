@@ -1,0 +1,43 @@
+{{define "bodystuff"}}
+        <form id="thaliform" name="thaliform" action="/postform/thali" method="POST">
+                <ul class="center">
+                        <div class="field">
+                                <label>Name:</label>
+                                <input type="text" value="" name="name" style="width=100px;">
+                        </div>
+                        <div class="field">
+                                <label>Price:</label>
+                                <input type="text" value="" name="price" style="width=100px;">
+                        </div>
+                        <div class="field">
+                                <label><span class="required">*</span>Limited?</label>
+                                <input type="radio" checked="checked" value="true" name="limited">
+                                Limited &nbsp;&nbsp;
+                                <input type="radio" value="false" name="limited">
+                                Unlimited &nbsp;&nbsp;                       
+                        </div>
+                        <div class="field">
+                                <label><span class="required">*</span>Target</label>
+                                <select id="target" name="target">
+                                    <option value="blue" selected>Blue</option>
+                                    <option value="yellow">Yellow</option>
+                                    <option value="white">White</option>
+                                    <option value="leisure">Leisure</option>
+                                </select>
+                        </div>
+                        <div class="field">
+                                <label><span class="required">*</span>Region</label>
+                                <select id="region" name="region">
+                                    <option value="south" selected>South</option>
+                                    <option value="north">North</option>
+                                    <option value="east">East</option>
+                                    <option value="west">West</option>
+                                    <option value="central">Central</option>
+                                </select>
+                        </div>
+                        <div class="field">
+                                <input type="submit" value="Submit" class="button button-alt">
+                        </div>
+                </ul>
+        </form>
+{{end}}

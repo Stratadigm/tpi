@@ -43,7 +43,7 @@ In v1 there's four data structures of interest:
     + Confirmed bool
     + Points []Data // data points contributed
     + Rep int
-    + JDte time.Time
+    + Submitted time.Time
 
 + Thali
     + Target int // 1-4 target customer profile
@@ -51,22 +51,16 @@ In v1 there's four data structures of interest:
     + Region int // 1-3 target cuisine
     + Price float64 //
     + Photo image
+    + Submitted time.Time
 
 + Venue
     + Name string
     + Latitude float64
     + Longitude float64
-    + Thalis []Thali
+    + Thalis []int64
+    + Submitted time.Time
 
-+ Data
-    + TThali Thali
-    + TVen Venue
-    + SubmitTime time.Time
-    + TUser User
-    + Verfied bool
-    + Accepted bool
-
-User -> Data = One-to-many
+User -> Thali = One-to-many
 Venue -> Thali = One-to-many
 
 We need a appengine datastore access structure and also a Postgres and/or Mongo access structure for deployment in case of move away from Appengine. All in Go.
@@ -102,10 +96,10 @@ Post JSON data
 HTML templates for logs and list of users/venues/thalis/data are available at:
 
 https://thalipriceindex.appspot.com/logs
-https://thalipriceindex.appspot.com/users
-https://thalipriceindex.appspot.com/venues
-https://thalipriceindex.appspot.com/thalis
-https://thalipriceindex.appspot.com/datas
+https://thalipriceindex.appspot.com/list/users
+https://thalipriceindex.appspot.com/list/venues
+https://thalipriceindex.appspot.com/list/thalis
+https://thalipriceindex.appspot.com/list/datas
 
 
 <A name="toc1_4" title="App & Browser" />
@@ -128,7 +122,12 @@ As soon as a user contributes 10 verified/accepted data points, they get access 
 
 Spammers should gain negative reputation for every unverified/unaccepted data point and after 10 such points unable to contribute.
 
-<A name="toc1_5" title="References" />
+<A name="toc1_5" title="Gotchas" />
+## Gotchas ##
+
+
+
+<A name="toc1_6" title="References" />
 ## References ##
 + [Writing images to templates](http://www.sanarias.com/blog/1214PlayingwithimagesinHTTPresponseingolang)
 + [Appengine datastore api](https://godoc.org/google.golang.org/appengine/datastore)

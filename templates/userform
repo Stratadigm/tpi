@@ -1,0 +1,17 @@
+{{define "bodystuff"}}
+        <form id="guestrsvp" name="guestrsvp" action="/postform/user" method="POST">
+                <ul class="center">
+                        <div class="field">
+                                <label>Name:</label>
+                                <input type="text" value="" name="fullname" style="width=100px;">
+                        </div>
+                        <div class="field">
+                                <label>E-Mail Address:</label>
+                                <input type="text" value="" name="email" style="width=100px;">
+                        </div>
+                        <div class="field">
+                                <input type="submit" value="Create" class="button button-alt">
+                        </div>
+                </ul>
+        </form>
+{{end}}

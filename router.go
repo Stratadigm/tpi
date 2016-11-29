@@ -6,7 +6,7 @@ import (
 	"regexp"
 )
 
-var validPath = regexp.MustCompile(`^/(create|users|counters|logs)?/?(.*)$`)
+var validPath = regexp.MustCompile(`^/(create|list|users|counters|postform|logs)?/?(.*)$`)
 
 func NewRouter() *mux.Router {
 

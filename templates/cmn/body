@@ -1,0 +1,5 @@
+{{define "body"}}
+<body>
+    {{template "bodystuff" .}}
+</body>
+{{end}}

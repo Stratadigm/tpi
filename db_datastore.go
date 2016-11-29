@@ -1,11 +1,15 @@
 package tpi
 
 import (
+	"cloud.google.com/go/storage"
 	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/file"
 	"google.golang.org/appengine/log"
+	"image"
+	"image/jpeg"
 	_ "log"
 	"net/http"
 	"reflect"
@@ -27,6 +31,7 @@ var (
 	_        error        = &DSErr{}
 	entities              = map[string]string{"User": "user", "Venue": "venue", "Thali": "thali", "Data": "data"}
 	total                 = int64(0)
+	bucket                = "thalipriceindex.appspot.com"
 )
 
 func NewDS(r *http.Request) *DS {
@@ -102,25 +107,65 @@ func (ds *DS) dsChildKey(t reflect.Type, id int64, pk *datastore.Key) *datastore
 /* Interface */
 
 //List returns a slice of v
-func (ds *DS) List(v interface{}) error {
+func (ds *DS) List(v interface{}, offset ...int) error {
 
 	if reflect.TypeOf(v).Kind() != reflect.Ptr {
 		return DSErr{When: time.Now(), What: "Get error: pointer reqd"}
 	}
 	c := ds.ctx
-	s := reflect.TypeOf(v).Elem()
-	cs := reflect.MakeSlice(s, 0, 1e6)
-	entity := reflect.TypeOf(v).Elem().Name()
+	//s := reflect.TypeOf(v).Elem()
+	//cs := reflect.MakeSlice(s, 0, 1e6)
+	entity := reflect.ValueOf(v).Elem().Slice(0, 1).Index(0).Type().Name() //v is &[]User
 	q := datastore.NewQuery(entities[entity]).Order("Id")
-	_, err := q.GetAll(c, &cs)
+	if offset[0] != 0 {
+		q = q.Limit(perPage + offset[0]).Offset(offset[0])
+	} else {
+		q = q.Limit(perPage).Offset(0)
+	}
+	_, err := q.GetAll(c, v)
 	if err != nil {
 		//return nil, fmt.Errorf("Get %s list error", entity)
-		return DSErr{When: time.Now(), What: fmt.Sprintf("Get %s list error", entity)}
+		return DSErr{When: time.Now(), What: fmt.Sprintf("Get %s list error: %v", entity, err)}
 	}
 	//for i, k := range ks {
 	//	cs[i].Id = k.IntID()
 	//}
-	reflect.ValueOf(v).Elem().Set(cs)
+	//reflect.ValueOf(v).Elem().Set(cs)
+	return nil
+
+}
+
+//Validate checks whether the provided interface's fields is populated with valid data. Return nil or error
+func (ds *DS) Validate(v interface{}) error {
+
+	if reflect.TypeOf(v).Kind() != reflect.Ptr {
+		return DSErr{When: time.Now(), What: "Validate error: pointer reqd"}
+	}
+	s := reflect.TypeOf(v).Elem()
+	if _, ok := entities[s.Name()]; !ok {
+		log.Errorf(ds.ctx, "Validate entity no such entity: %v", s.Name())
+		return DSErr{When: time.Now(), What: "Validate error: no such entity " + s.Name()}
+	}
+	switch s.Name() {
+	case "User":
+		email := reflect.ValueOf(v).Elem().FieldByName("Email").String()
+		m := validEmail.FindStringSubmatch(email)
+		if m == nil {
+			log.Errorf(ds.ctx, "Invalid email entered: %v\n", email)
+			return DSErr{When: time.Now(), What: "Validate error: invalid email " + email}
+		}
+		user, err := ds.GetUserwEmail(email)
+		if user != nil || err != nil {
+			log.Errorf(ds.ctx, "Email already in use: %v, %v\n", email, err)
+			return DSErr{When: time.Now(), What: "Validate error: email already in use " + email}
+		}
+	case "Venue":
+	case "Thali":
+	case "Data":
+	default:
+		log.Errorf(ds.ctx, "Validate entity no such entity: %v", s.Name())
+		return DSErr{When: time.Now(), What: "Validate error: no such entity " + s.Name()}
+	}
 	return nil
 
 }
@@ -496,5 +541,40 @@ func (ds *DS) PutCounter(counter *Counter) error {
 		return err
 	}
 	return nil
+
+}
+
+//WriteCloudImage writes the image provided as argument to cloud storage with name provided as argument
+func WriteCloudImage(ctx context.Context, mth *image.Image, filename string) error {
+
+	var err error
+	//[START get_default_bucket]
+	if bucket == "" {
+		if bucket, err = file.DefaultBucketName(ctx); err != nil {
+			log.Errorf(ctx, "failed to get default GCS bucket name: %v\n", err.Error())
+			return err
+		}
+	}
+	//[END get_default_bucket]
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to create client: %v\n", err.Error())
+		return err
+	}
+	defer client.Close()
+	wc := client.Bucket(bucket).Object(filename).NewWriter(ctx)
+	wc.ContentType = "image/jpeg"
+	wc.ACL = []storage.ACLRule{{storage.AllUsers, storage.RoleReader}}
+	if err = jpeg.Encode(wc, *mth, nil); err != nil {
+		log.Errorf(ctx, "failed to write: %v\n", err.Error())
+		return err
+	}
+	if err = wc.Close(); err != nil {
+		log.Errorf(ctx, "failed to close: %v\n", err.Error())
+		return err
+	}
+	log.Errorf(ctx, "updated object: %v\n", wc.Attrs())
+
+	return err
 
 }

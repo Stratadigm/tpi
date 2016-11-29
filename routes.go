@@ -57,9 +57,39 @@ var routes = Routes{
 		Users,
 	},
 	Route{
+		"List",
+		"GET",
+		"/list/{what}",
+		List,
+	},
+	Route{
 		"Counters",
 		"GET",
 		"/counters",
 		Counters,
+	},
+	Route{
+		"PostForm",
+		"POST",
+		"/postform/{what}",
+		PostForm,
+	},
+	Route{
+		"GetForm",
+		"GET",
+		"/getform/{what}",
+		GetForm,
+	},
+	Route{
+		"GetUpload",
+		"GET",
+		"/upload/{what}",
+		GetUpload,
+	},
+	Route{
+		"PostUpload",
+		"POST",
+		"/upload/{what}",
+		PostUpload,
 	},
 }
