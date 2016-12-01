@@ -10,6 +10,9 @@
                                 <input type="text" value="" name="price" style="width=100px;">
                         </div>
                         <div class="field">
+                                <input type="hidden" value="{{.Id}}" name="venue" style="width=100px;">
+                        </div>
+                        <div class="field">
                                 <label><span class="required">*</span>Limited?</label>
                                 <input type="radio" checked="checked" value="true" name="limited">
                                 Limited &nbsp;&nbsp;

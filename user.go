@@ -13,13 +13,15 @@ type Counter struct {
 }
 
 type User struct {
-	Id        int64     `json:"id" schema:"-"`
-	Name      string    `json:"name" schema:"fullname"`
-	Email     string    `json:"email" schema:"email"`
-	Confirmed bool      `json:"conf"`
-	Points    []Data    `json:"data"`
+	Id        int64  `json:"id" schema:"-"`
+	Name      string `json:"name" schema:"fullname"`
+	Email     string `json:"email" schema:"email"`
+	Confirmed bool   `json:"conf"`
+	//Points    []Data    `json:"data"`
+	Thalis    []Thali   `json:"thalis"`
+	Venues    []int64   `json:"venues"`
 	Rep       int       `json:"rep"`
-	JDte      time.Time `json:"jdte"`
+	Submitted time.Time `json:"submitted"`
 }
 
 type UserDatabase interface {
@@ -42,6 +44,6 @@ type UserDatabase interface {
 
 func NewUser(id int64) *User {
 
-	return &User{Id: id, JDte: time.Now(), Confirmed: false}
+	return &User{Id: id, Submitted: time.Now(), Confirmed: false}
 
 }

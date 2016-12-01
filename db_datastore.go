@@ -296,7 +296,8 @@ func (ds *DS) Get(v interface{}) error {
 		}
 		k = ds.dsKey(reflect.TypeOf(v).Elem(), id) //complete key
 	} else {
-		k = ds.dsKey(reflect.TypeOf(v).Elem())
+		return DSErr{When: time.Now(), What: "Get error: id not set"}
+		//k = ds.dsKey(reflect.TypeOf(v).Elem())
 	}
 
 	c := ds.ctx
@@ -577,4 +578,39 @@ func WriteCloudImage(ctx context.Context, mth *image.Image, filename string) err
 
 	return err
 
+}
+
+//ReadCloudImage reads the jpeg file with filename as argument stored in GCS bucket
+func ReadCloudImage(ctx context.Context, filename string) (*image.Image, error) {
+
+	var err error
+	//[START get_default_bucket]
+	if bucket == "" {
+		if bucket, err = file.DefaultBucketName(ctx); err != nil {
+			log.Errorf(ctx, "failed to get default GCS bucket name: %v\n", err.Error())
+			return nil, err
+		}
+	}
+	//[END get_default_bucket]
+	client, err := storage.NewClient(ctx)
+	if err != nil {
+		log.Errorf(ctx, "failed to create client: %v\n", err.Error())
+		return nil, err
+	}
+	defer client.Close()
+
+	rc, err := client.Bucket(bucket).Object(filename).NewReader(ctx)
+	if err != nil {
+		log.Errorf(ctx, "readFile: unable to open file from bucket %q, file %q: %v", bucket, filename, err.Error())
+		return nil, err
+	}
+	defer rc.Close()
+
+	slurp, err := jpeg.Decode(rc)
+	if err != nil {
+		log.Errorf(ctx, "readFile: unable to read data from bucket %q, file %q: %v", bucket, filename, err.Error())
+		return &slurp, err
+	}
+
+	return &slurp, nil
 }

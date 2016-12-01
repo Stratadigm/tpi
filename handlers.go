@@ -8,13 +8,13 @@ import (
 	_ "fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
-	_ "golang.org/x/oauth2"
+	//_ "golang.org/x/oauth2"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
 	"html/template"
 	"image"
-	_ "image/jpeg"
+	"image/jpeg"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -35,6 +35,7 @@ var (
 	tmpl_userform   = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/userform"))
 	tmpl_thaliform  = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/thaliform"))
 	tmpl_uploadform = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/uploadform"))
+	tmpl_image      = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/image"))
 	validEmail      = regexp.MustCompile("^.*@.*\\.(com|org|in|mail|io)$")
 )
 
@@ -530,6 +531,7 @@ func PostForm(w http.ResponseWriter, r *http.Request) {
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postform Create Error: " + err.Error()})
 		return
 	}
+	temp := reflect.ValueOf(g1).Elem().FieldByName("Id").Int()
 	decoder := schema.NewDecoder()
 	err = decoder.Decode(g1, r.PostForm)
 	if err != nil {
@@ -543,7 +545,10 @@ func PostForm(w http.ResponseWriter, r *http.Request) {
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postform Validate Error: " + err.Error()})
 		return
 	}
-	if _, err = adsc.Add(g1); err != nil {
+	//Need to specify Id when adding to datastore because schema.Decode posted user data wipes out Id information
+	reflect.ValueOf(g1).Elem().FieldByName("Id").SetInt(temp)
+	reflect.ValueOf(g1).Elem().FieldByName("Submitted").Set(reflect.ValueOf(time.Now()))
+	if _, err = adsc.Add(g1, temp); err != nil {
 		log.Errorf(c, "Postform add : %v\n", err)
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postform Add Error: " + err.Error()})
 		return
@@ -573,7 +578,13 @@ func GetForm(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case "thali":
-		if err = tmpl_thaliform.ExecuteTemplate(w, "base", map[string]interface{}{"Message": thanksMessage}); err != nil {
+		var id string
+		if _, ok := vars["id"]; !ok {
+			id = "0"
+		} else {
+			id = vars["id"]
+		}
+		if err = tmpl_thaliform.ExecuteTemplate(w, "base", map[string]interface{}{"Id": id}); err != nil {
 			tmpl_err.Execute(w, map[string]interface{}{"Message": "Bad get thali form : " + err.Error()})
 			return
 		}
@@ -599,11 +610,18 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 	var err error
 	c := appengine.NewContext(r)
 	vars := mux.Vars(r)
-	//id, err := strconv.Atoi(vars["what"])
-	//if err != nil {
-	//	log.Errorf(c, "Postupload strconv: %v", err)
-	//	tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload strconv: " + err.Error()})
-	//}
+	id, err := strconv.Atoi(vars["what"])
+	if err != nil {
+		log.Errorf(c, "Postupload strconv: %v", err)
+		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload strconv: " + err.Error()})
+	}
+	adsc := &DS{ctx: c}
+	thali := &Thali{Id: int64(id)}
+	if err = adsc.Get(thali); err != nil {
+		log.Errorf(c, "Postupload get thali: %v", err)
+		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload get thali: " + err.Error()})
+		return
+	}
 	//_4MB := (1 << 17) * 4
 	var file multipart.File
 	//var header *multipart.FileHeader
@@ -632,6 +650,15 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload Image write: " + err.Error()})
 		return
 	}
+	thali.Photo = vars["what"]
+	if _, err = adsc.Add(thali, thali.Id); err != nil {
+		log.Errorf(c, "PostUpload Add : %v\n", err)
+		tmpl_err.Execute(w, map[string]interface{}{"Message": "PostUpload Add : " + err.Error()})
+		return
+	}
+	if _, ok := img.(*image.RGBA); ok {
+		log.Errorf(c, "Postupload Image rgba: %v", ok)
+	}
 	tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload Success!!"})
 	return
 
@@ -647,6 +674,44 @@ func GetUpload(w http.ResponseWriter, r *http.Request) {
 	if err = tmpl_uploadform.ExecuteTemplate(w, "base", map[string]interface{}{"Id": id}); err != nil {
 		log.Errorf(c, "Bad getupload url: %v", vars["what"])
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Bad get upload form : " + err.Error()})
+		return
+	}
+	return
+
+}
+
+//GetImage handles Get requests for images from GC bucket
+func GetImage(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	c := appengine.NewContext(r)
+	vars := mux.Vars(r)
+	id := vars["what"]
+
+	buffer := new(bytes.Buffer)
+	//b, err := ioutil.ReadFile(f) // for dev_appserver testing only
+	img, err := ReadCloudImage(c, id) //ReadCloudImage (*image.Image, error)
+	if err != nil {
+		log.Errorf(c, "error reading from gcs %v \n", err)
+		tmpl_err.ExecuteTemplate(w, "base", map[string]interface{}{"Message": err, "Filename": id})
+		return
+	}
+	//img, err := jpeg.Decode(bytes.NewReader(b)) //for dev_appserver testing only
+	//if err != nil { //testing only
+	//        log.Printf("error reading from gcs %v \n", err)
+	//        tmpl_err.ExecuteTemplate(w, "base", map[string]interface{}{"Message":err, "Filename":f})
+	//        return
+	//}//for dev_appserver testing only
+	if err := jpeg.Encode(buffer, *img, nil); err != nil { //change *img to img for dev_appserver testing
+		log.Errorf(c, "error reading image from gcs %v \n", err)
+		tmpl_err.ExecuteTemplate(w, "base", map[string]interface{}{"Message": err, "Filename": id})
+		return
+	}
+	str := base64.StdEncoding.EncodeToString(buffer.Bytes())
+
+	if err = tmpl_image.ExecuteTemplate(w, "base", map[string]interface{}{"Image": str}); err != nil {
+		log.Errorf(c, "Bad image url: %v", vars["what"])
+		tmpl_err.Execute(w, map[string]interface{}{"Message": "Bad image url : " + err.Error()})
 		return
 	}
 	return

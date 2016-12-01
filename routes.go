@@ -81,6 +81,12 @@ var routes = Routes{
 		GetForm,
 	},
 	Route{
+		"GetFormId",
+		"GET",
+		"/getform/{what}/{id:[0-9]+}",
+		GetForm,
+	},
+	Route{
 		"GetUpload",
 		"GET",
 		"/upload/{what}",
@@ -91,5 +97,11 @@ var routes = Routes{
 		"POST",
 		"/upload/{what}",
 		PostUpload,
+	},
+	Route{
+		"GetImage",
+		"GET",
+		"/image/{what}",
+		GetImage,
 	},
 }

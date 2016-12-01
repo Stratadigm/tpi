@@ -14,7 +14,7 @@
                                                 <td> {{.Location.Lat}} </td>
                                                 <td> {{.Location.Lng}} </td>
                                                 <td> <a href="/admin/edit/{{.Id}}"> Edit </a> </td>
-                                                <td> <a href="/getform/data/{{.Id}}"> Add Thali </a> </td>
+                                                <td> <a href="/getform/thali/{{.Id}}"> Add Thali </a> </td>
                                         </tr>
                                 {{end}}
                                 </tbody>

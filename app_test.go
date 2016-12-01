@@ -7,13 +7,13 @@ import (
 	"net/http"
 	_ "net/http/httptest"
 	"testing"
-	"time"
+	_ "time"
 )
 
 func TestCRUDUser(t *testing.T) {
 
 	var err error
-	g1 := &User{Name: "Roger", Email: "roger@fed.com", Confirmed: true, Points: nil, Rep: 0, JDte: time.Now()}
+	g1 := &User{Name: "Roger", Email: "roger@fed.com", Confirmed: true, Rep: 0}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	err = enc.Encode(g1)
