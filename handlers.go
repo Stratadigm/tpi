@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	//_ "golang.org/x/oauth2"
+	"github.com/stratadigm/tpi_data"
+	"github.com/stratadigm/tpi_services"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/log"
@@ -19,7 +21,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
-	"regexp"
 	"strconv"
 	"time"
 )
@@ -36,23 +37,60 @@ var (
 	tmpl_thaliform  = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/thaliform"))
 	tmpl_uploadform = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/uploadform"))
 	tmpl_image      = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/image"))
-	validEmail      = regexp.MustCompile("^.*@.*\\.(com|org|in|mail|io)$")
 )
 
 const thanksMessage = `Thanks for input.`
 const recordsPerPage = 10
-const perPage = 20
+
+//const perPage = 20
 
 type Render struct { //for most purposes
 	Average float64 `json:"average"`
+}
+
+func Login(w http.ResponseWriter, r *http.Request) {
+
+	c := appengine.NewContext(r)
+
+	requestUser := new(tpi_data.User)
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&requestUser)
+
+	responseStatus, token := tpi_services.Login(c, requestUser)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(responseStatus)
+	w.Write(token)
+}
+
+func RefreshToken(w http.ResponseWriter, r *http.Request /*, next http.HandlerFunc*/) {
+
+	c := appengine.NewContext(r)
+	requestUser := new(tpi_data.User)
+	decoder := json.NewDecoder(r.Body)
+	decoder.Decode(&requestUser)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(tpi_services.RefreshToken(c, requestUser))
+}
+
+func Logout(w http.ResponseWriter, r *http.Request /*, next http.HandlerFunc*/) {
+
+	c := appengine.NewContext(r)
+	err := tpi_services.Logout(c, r)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
+	}
 }
 
 // Index writes in JSON format the average value of a thali at the requester's location to the response writer
 func Index(w http.ResponseWriter, r *http.Request) {
 
 	c := appengine.NewContext(r)
-	host := GetIp(r)
-	loc, err := GetLoc(c, host)
+	host := tpi_data.GetIp(r)
+	loc, err := tpi_data.GetLoc(c, host)
 	if err != nil {
 		log.Errorf(c, "Index get location: %v", err)
 		return
@@ -74,7 +112,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	var g1 interface{}
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
-	adsc := &DS{ctx: c}
+	adsc := tpi_data.NewDSwc(c) //&DS{Ctx: c}
 	//Need to make sure counter is alive before creating/adding entities
 	counter := adsc.GetCounter()
 	if counter == nil {
@@ -82,7 +120,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Errorf(c, "Create create counter: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
-			if err := enc.Encode(&DSErr{time.Now(), "Create create counter " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create create counter " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
@@ -91,53 +129,53 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 	switch r.URL.Path {
 	case "/create/user":
-		g1 = &User{}
+		g1 = &tpi_data.User{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create user: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
-			if err := enc.Encode(&DSErr{time.Now(), "Create user " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create user " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
 			return
 		}
 	case "/create/venue":
-		g1 = &Venue{}
+		g1 = &tpi_data.Venue{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create venue: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
-			if err := enc.Encode(&DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
 			return
 		}
 	case "/create/thali":
-		g1 = &Thali{}
+		g1 = &tpi_data.Thali{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create thali: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
-			if err := enc.Encode(&DSErr{time.Now(), "Create thali " + err.Error()}); err != nil {
-				log.Errorf(c, "Create json encode DSErr: %v", err)
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create thali " + err.Error()}); err != nil {
+				log.Errorf(c, "Create json encode tpi_data.DSErr: %v", err)
 				return
 			}
 			return
 		}
 	case "/create/data":
-		g1 = &Data{}
+		g1 = &tpi_data.Data{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create data: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
-			if err := enc.Encode(&DSErr{time.Now(), "Create data " + err.Error()}); err != nil {
-				log.Errorf(c, "Create json encode DSErr: %v", err)
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create data " + err.Error()}); err != nil {
+				log.Errorf(c, "Create json encode tpi_data.DSErr: %v", err)
 				return
 			}
 			return
 		}
 	default:
 		w.WriteHeader(http.StatusBadRequest)
-		if err := enc.Encode(&DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
-			log.Errorf(c, "Create json encode DSErr: %v", err)
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
+			log.Errorf(c, "Create json encode tpi_data.DSErr: %v", err)
 			return
 		}
 		return
@@ -149,8 +187,17 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Errorf(c, "Couldn't decode posted json: %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
-		if err := enc.Encode(&DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
-			log.Errorf(c, "Create json encode DSErr: %v", err)
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create entity decode " + err.Error()}); err != nil {
+			log.Errorf(c, "Create json encode tpi_data.DSErr: %v", err)
+			return
+		}
+		return
+	}
+	if err := adsc.Validate(g1); err != nil {
+		log.Errorf(c, "Create json validate : %v\n", err)
+		w.WriteHeader(http.StatusBadRequest)
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create entity validation " + err.Error()}); err != nil {
+			log.Errorf(c, "Create json encode tpi_data.DSErr: %v", err)
 			return
 		}
 		return
@@ -161,15 +208,15 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	if id, err := adsc.Add(g1, temp); err != nil {
 		log.Errorf(c, "Couldn't add entity: %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
-		if err := enc.Encode(&DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
-			log.Errorf(c, "Create json encode DSErr: %v", err)
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
+			log.Errorf(c, "Create json encode tpi_data.DSErr: %v", err)
 			return
 		}
 		return
 	} else {
 		w.WriteHeader(http.StatusCreated)
-		if err := enc.Encode(&DSErr{time.Now(), "Created entity " + string(id)}); err != nil {
-			log.Errorf(c, "Created json encode DSErr: %v", err)
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Created entity " + string(id)}); err != nil {
+			log.Errorf(c, "Created json encode tpi_data.DSErr: %v", err)
 			return
 		}
 		return
@@ -192,7 +239,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		err := adsc.CreateCounter()
 		if err != nil {
 			log.Errorf(c, "Create create counter: %v", err)
-			if err := enc.Encode(&DSErr{time.Now(), "Create create counter " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create create counter " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
@@ -204,7 +251,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		g1 = &User{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create user: %v", err)
-			if err := enc.Encode(&DSErr{time.Now(), "Create user " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create user " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
@@ -214,7 +261,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		g1 = &Venue{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create venue: %v", err)
-			if err := enc.Encode(&DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
@@ -224,7 +271,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		g1 = &Thali{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create thali: %v", err)
-			if err := enc.Encode(&DSErr{time.Now(), "Create thali " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create thali " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
@@ -234,14 +281,14 @@ func Create(w http.ResponseWriter, r *http.Request) {
 		g1 = &Data{}
 		if err = adsc.Create(g1); err != nil {
 			log.Errorf(c, "Create data: %v", err)
-			if err := enc.Encode(&DSErr{time.Now(), "Create data " + err.Error()}); err != nil {
+			if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create data " + err.Error()}); err != nil {
 				log.Errorf(c, "Create json encode: %v", err)
 				return
 			}
 			return
 		}
 	default:
-		if err := enc.Encode(&DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create venue " + err.Error()}); err != nil {
 			log.Errorf(c, "Create json encode: %v", err)
 			return
 		}
@@ -255,13 +302,13 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	}
 	if id, err := adsc.Add(g1); err != nil {
 		log.Errorf(c, "Couldn't add entity: %v\n", err)
-		if err := enc.Encode(&DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Create entity " + err.Error()}); err != nil {
 			log.Errorf(c, "Create json encode: %v", err)
 			return
 		}
 		return
 	} else {
-		if err := enc.Encode(&DSErr{time.Now(), "Created entity " + string(id)}); err != nil {
+		if err := enc.Encode(&tpi_data.DSErr{time.Now(), "Created entity " + string(id)}); err != nil {
 			log.Errorf(c, "Created json encode: %v", err)
 			return
 		}
@@ -340,7 +387,7 @@ func Logs(w http.ResponseWriter, r *http.Request) {
 func List(w http.ResponseWriter, r *http.Request) {
 
 	c := appengine.NewContext(r)
-	adsc := &DS{ctx: c}
+	adsc := tpi_data.NewDSwc(c) //&DS{Ctx: c}
 	var err error
 	data := map[string]interface{}{
 		"Next": "0",
@@ -358,7 +405,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 	//var g1 interface{}
 	switch r.URL.Path {
 	case "/list/users":
-		g1 := make([]User, 1)
+		g1 := make([]tpi_data.User, 1)
 		if err = adsc.List(&g1, offint); err != nil {
 			log.Errorf(c, "List users: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -367,7 +414,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 		}
 		data["List"] = g1
 	case "/list/venues":
-		g1 := make([]Venue, 1)
+		g1 := make([]tpi_data.Venue, 1)
 		if err = adsc.List(&g1, offint); err != nil {
 			log.Errorf(c, "List venues: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -376,7 +423,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 		}
 		data["List"] = g1
 	case "/list/thalis":
-		g1 := make([]Thali, 1)
+		g1 := make([]tpi_data.Thali, 1)
 		if err = adsc.List(&g1, offint); err != nil {
 			log.Errorf(c, "List thalis: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -385,7 +432,7 @@ func List(w http.ResponseWriter, r *http.Request) {
 		}
 		data["List"] = g1
 	case "/list/datas":
-		g1 := make([]Data, 1)
+		g1 := make([]tpi_data.Data, 1)
 		if err = adsc.List(&g1, offint); err != nil {
 			log.Errorf(c, "List data: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
@@ -399,11 +446,11 @@ func List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data["Next"] = strconv.Itoa(offint + perPage)
+	data["Next"] = strconv.Itoa(offint + tpi_data.PerPage)
 	if offint == 0 {
 		data["Prev"] = strconv.Itoa(offint)
 	} else {
-		data["Prev"] = strconv.Itoa(offint - perPage)
+		data["Prev"] = strconv.Itoa(offint - tpi_data.PerPage)
 	}
 
 	switch r.URL.Path {
@@ -436,7 +483,7 @@ func Users(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	var err error
 	var data struct {
-		List []*User
+		List []*tpi_data.User
 		Next string
 		Prev string
 	}
@@ -449,23 +496,23 @@ func Users(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Errorf(ctx, "Reading user records offset: %v", err)
 		}
-		query = query.Limit(perPage + offint).Offset(offint)
+		query = query.Limit(tpi_data.PerPage + offint).Offset(offint)
 	} else {
-		query = query.Limit(perPage).Offset(0)
+		query = query.Limit(tpi_data.PerPage).Offset(0)
 	}
 
-	users := make([]*User, 0)
+	users := make([]*tpi_data.User, 0)
 	_, err = query.GetAll(ctx, &users)
 	if err != nil {
 		log.Errorf(ctx, "Datastore getall query: %v", err)
 	}
 
 	data.List = users
-	data.Next = strconv.Itoa(offint + perPage)
+	data.Next = strconv.Itoa(offint + tpi_data.PerPage)
 	if offint == 0 {
 		data.Prev = strconv.Itoa(offint)
 	} else {
-		data.Prev = strconv.Itoa(offint - perPage)
+		data.Prev = strconv.Itoa(offint - tpi_data.PerPage)
 	}
 
 	if err := tmpl_users.Execute(w, data); err != nil {
@@ -482,7 +529,7 @@ func Counters(w http.ResponseWriter, r *http.Request) {
 
 	query := datastore.NewQuery("counter")
 
-	cntr := make([]*Counter, 0)
+	cntr := make([]*tpi_data.Counter, 0)
 	_, err = query.GetAll(ctx, &cntr)
 	if err != nil {
 		log.Errorf(ctx, "Datastore getall query: %v", err)
@@ -500,7 +547,7 @@ func PostForm(w http.ResponseWriter, r *http.Request) {
 	var err error
 	c := appengine.NewContext(r)
 	_ = r.ParseForm()
-	adsc := &DS{ctx: c}
+	adsc := tpi_data.NewDSwc(c) //&DS{Ctx: c}
 	//Need to make sure counter is alive before creating/adding guests
 	counter := adsc.GetCounter()
 	if counter == nil {
@@ -516,13 +563,13 @@ func PostForm(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	switch vars["what"] {
 	case "user":
-		g1 = &User{}
+		g1 = &tpi_data.User{}
 	case "venue":
-		g1 = &Venue{}
+		g1 = &tpi_data.Venue{}
 	case "thali":
-		g1 = &Thali{}
+		g1 = &tpi_data.Thali{}
 	case "data":
-		g1 = &Data{}
+		g1 = &tpi_data.Data{}
 	default:
 	}
 	if err = adsc.Create(g1); err != nil {
@@ -615,8 +662,8 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(c, "Postupload strconv: %v", err)
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload strconv: " + err.Error()})
 	}
-	adsc := &DS{ctx: c}
-	thali := &Thali{Id: int64(id)}
+	adsc := tpi_data.NewDSwc(c) //&DS{Ctx: c}
+	thali := &tpi_data.Thali{Id: int64(id)}
 	if err = adsc.Get(thali); err != nil {
 		log.Errorf(c, "Postupload get thali: %v", err)
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload get thali: " + err.Error()})
@@ -645,7 +692,7 @@ func PostUpload(w http.ResponseWriter, r *http.Request) {
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload Image decode: " + err.Error()})
 		return
 	}
-	if err = WriteCloudImage(c, &img, vars["what"]); err != nil {
+	if err = tpi_data.WriteCloudImage(c, &img, vars["what"]); err != nil {
 		log.Errorf(c, "Postupload Image write: %v", err)
 		tmpl_err.Execute(w, map[string]interface{}{"Message": "Postupload Image write: " + err.Error()})
 		return
@@ -690,7 +737,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 
 	buffer := new(bytes.Buffer)
 	//b, err := ioutil.ReadFile(f) // for dev_appserver testing only
-	img, err := ReadCloudImage(c, id) //ReadCloudImage (*image.Image, error)
+	img, err := tpi_data.ReadCloudImage(c, id) //ReadCloudImage (*image.Image, error)
 	if err != nil {
 		log.Errorf(c, "error reading from gcs %v \n", err)
 		tmpl_err.ExecuteTemplate(w, "base", map[string]interface{}{"Message": err, "Filename": id})

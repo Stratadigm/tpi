@@ -1,11 +1,14 @@
 package tpi
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"github.com/stratadigm/tpi_data"
 	"google.golang.org/appengine"
 	"net/http"
 	_ "net/http/httptest"
+	"strconv"
 	"testing"
 	_ "time"
 )
@@ -13,7 +16,7 @@ import (
 func TestCRUDUser(t *testing.T) {
 
 	var err error
-	g1 := &User{Name: "Roger", Email: "roger@fed.com", Confirmed: true, Rep: 0}
+	g1 := &tpi_data.User{Name: "Roger", Email: "rafa@fed.com", Password: "allurbase", Confirmed: true, Rep: 0}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	err = enc.Encode(g1)
@@ -21,7 +24,8 @@ func TestCRUDUser(t *testing.T) {
 		t.Errorf("Encode json : %v", err)
 	}
 	//Create
-	req, err := http.NewRequest("POST", "https://thalipriceindex.appspot.com/create/user", &buf)
+	//req, err := http.NewRequest("POST", "https://thalipriceindex.appspot.com/create/user", &buf)
+	req, err := http.NewRequest("POST", "http://192.168.0.9:8080/create/user", &buf)
 	if err != nil {
 		t.Errorf("Request : %v", err)
 	}
@@ -39,22 +43,12 @@ func TestCRUDUser(t *testing.T) {
 		t.Errorf("Response: %v", resp.Status)
 	}
 
-	//Retrieve
-
-	//g2 := &User{}
-	//dec := json.NewDecoder(resp.Body)
-	//err = json.Decode(g2)
-
-	//Update
-
-	//Delete
-
 }
 
 func TestCRUDVenue(t *testing.T) {
 
 	var err error
-	g1 := &Venue{Name: "Shanti Sagar", Location: appengine.GeoPoint{Lat: 13.5, Lng: 75.4}}
+	g1 := &tpi_data.Venue{Name: "Udupi Uphara", Location: appengine.GeoPoint{Lat: 13.9, Lng: 75.4}}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	err = enc.Encode(g1)
@@ -96,5 +90,50 @@ func TestCRUDThali(t *testing.T) {
 }
 
 func TestCRUDData(t *testing.T) {
+
+}
+
+func TestLogin(t *testing.T) {
+
+	var err error
+	g1 := &tpi_data.User{Name: "Rafa", Email: "rafa@fed.com", Password: "allurbase"}
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	err = enc.Encode(g1)
+	if err != nil {
+		t.Errorf("Encode json : %v", err)
+	}
+	//Create
+	//req, err := http.NewRequest("POST", "https://thalipriceindex.appspot.com/create/user", &buf)
+	req, err := http.NewRequest("POST", "http://192.168.0.9:8080/token_auth", &buf)
+	if err != nil {
+		t.Errorf("Request : %v", err)
+	}
+	//req.Header.Set("X-Custom-Header", "")
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Errorf("Client do request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Response: %v", resp.Status)
+	}
+	cl := resp.Header.Get("Content-Length")
+	icl, err := strconv.Atoi(cl)
+	if err != nil {
+		t.Errorf("Content Length err: %v", err)
+	}
+	tok := make([]byte, icl)
+	dec := bufio.NewReader(resp.Body)
+	_, err = dec.Read(tok)
+	if err != nil {
+		t.Errorf("Json resp err: %v", err)
+	} else {
+		t.Errorf("Json token: %v", string(tok))
+	}
 
 }

@@ -35,45 +35,57 @@ After filtering outliers, the price index will be based on a weighted average of
 
 <A name="toc1_2" title="Data" />
 ## Data ##
-In v1 there's four data structures of interest:
+In v1 there's three data structures of interest:
 
 + User
     + Name string
     + Email string
     + Confirmed bool
-    + Points []Data // data points contributed
+    + Thalis []Thali // thalis contributed
+    + Venues []int64 // venues contributed - []int64 due to datastore restriction of no nested slices
     + Rep int
-    + Submitted time.Time
-
-+ Thali
-    + Target int // 1-4 target customer profile
-    + Limited bool
-    + Region int // 1-3 target cuisine
-    + Price float64 //
-    + Photo image
     + Submitted time.Time
 
 + Venue
     + Name string
-    + Latitude float64
-    + Longitude float64
+    + Latitude float64 // can be replaced with Location appengine.GeoPoint
+    + Longitude float64 // can be replaced with Location appengine.GeoPoint
     + Thalis []int64
     + Submitted time.Time
 
++ Thali
+    + Name string
+    + Target int // 1-4 target customer profile
+    + Limited bool
+    + Region int // 1-3 target cuisine
+    + Price float64 //
+    + Photo string // filename in GCS
+    + Venueid int64  // available at venue with id
+    + Userid int64 // contributing by user with id
+    + Verified bool
+    + Accepted bool
+    + Submitted time.Time
+
 User -> Thali = One-to-many
-Venue -> Thali = One-to-many
 
 We need a appengine datastore access structure and also a Postgres and/or Mongo access structure for deployment in case of move away from Appengine. All in Go.
 
-In the appengine datastore version, Data is slightly modified to include Id of User rather than a User (see appengine datastore reference). 
+In the appengine datastore version, Thali is slightly modified to include Id of Venue rather than a Venue (see appengine datastore reference). 
 
 
 <A name="toc1_3" title="JSON API" />
 ## Endpoints ##
 Data contribution, edit & retrieval is done via a simple HTTP/S REST JSON API. 
 
+##VALIDATION##
+https://thalipriceindex.appspot.com/token_auth
+https://thalipriceindex.appspot.com/refresh_token_auth
+https://thalipriceindex.appspot.com/logout
+
 ##CREATE (POST ONLY)##
 https://thalipriceindex.appspot.com/create/user
+Request body must consist of json with Name, Email, Password
+
 https://thalipriceindex.appspot.com/create/venue
 https://thalipriceindex.appspot.com/create/thali
 https://thalipriceindex.appspot.com/create/data

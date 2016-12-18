@@ -15,6 +15,24 @@ type Routes []Route
 
 var routes = Routes{
 	Route{
+		"Login",
+		"POST",
+		"/token_auth",
+		Login,
+	},
+	Route{
+		"Refresh",
+		"GET",
+		"/refresh_token_auth",
+		RefreshToken,
+	},
+	Route{
+		"Logout",
+		"GET",
+		"/logout",
+		Logout,
+	},
+	Route{
 		"Index",
 		"GET",
 		"/",
