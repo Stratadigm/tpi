@@ -57,12 +57,12 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	decoder.Decode(&requestUser)
 
 	responseStatus, token := tpi_services.Login(c, requestUser)
-	w.Header().Set("Content-Type", "application/json")
+	//w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(responseStatus)
 	w.Write(token)
 }
 
-func RefreshToken(w http.ResponseWriter, r *http.Request /*, next http.HandlerFunc*/) {
+func RefreshToken(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
 	c := appengine.NewContext(r)
 	requestUser := new(tpi_data.User)
@@ -73,7 +73,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request /*, next http.HandlerFu
 	w.Write(tpi_services.RefreshToken(c, requestUser))
 }
 
-func Logout(w http.ResponseWriter, r *http.Request /*, next http.HandlerFunc*/) {
+func Logout(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
 	c := appengine.NewContext(r)
 	err := tpi_services.Logout(c, r)
@@ -83,6 +83,15 @@ func Logout(w http.ResponseWriter, r *http.Request /*, next http.HandlerFunc*/) 
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func Hello(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+
+	//c := appengine.NewContext(r)
+	//w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Hello, World!"))
+
 }
 
 // Index writes in JSON format the average value of a thali at the requester's location to the response writer
@@ -475,6 +484,94 @@ func List(w http.ResponseWriter, r *http.Request) {
 			log.Errorf(c, "Rendering template: %v", err)
 		}
 	}
+}
+
+//JSONList writes list of Users/Venues/Thalis/Data in html to the response writer
+func JSONList(w http.ResponseWriter, r *http.Request) {
+
+	c := appengine.NewContext(r)
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	adsc := tpi_data.NewDSwc(c) //&DS{Ctx: c}
+	var err error
+
+	offint := 0
+	if offset := r.FormValue("offset"); offset != "" {
+		offint, err = strconv.Atoi(offset)
+		if err != nil {
+			log.Errorf(c, "Reading user records offset: %v", err)
+		}
+	}
+
+	switch r.URL.Path {
+	case "/jsonlist/users":
+		g1 := make([]tpi_data.User, 1)
+		if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list users: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list users json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(g1); err != nil {
+			log.Errorf(c, "json list users encode: %v", err)
+		}
+		return
+	case "/jsonlist/venues":
+		g1 := make([]tpi_data.Venue, 1)
+		if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list venues: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list venues json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(&g1); err != nil {
+			log.Errorf(c, "json list venues encode: %v", err)
+		}
+		return
+	case "/jsonlist/thalis":
+		g1 := make([]tpi_data.Thali, 1)
+		if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list thalis: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list thalis json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(&g1); err != nil {
+			log.Errorf(c, "json list thalis encode: %v", err)
+		}
+		return
+	case "/jsonlist/datas":
+		g1 := make([]tpi_data.Data, 1)
+		if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list data: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list datas json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(&g1); err != nil {
+			log.Errorf(c, "json list datas encode: %v", err)
+		}
+		return
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+			log.Errorf(c, "json list bad path err: %v", err1)
+		}
+		return
+	}
+
 }
 
 //Users writes list of Users in html to the response writer

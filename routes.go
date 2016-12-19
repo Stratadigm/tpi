@@ -20,7 +20,7 @@ var routes = Routes{
 		"/token_auth",
 		Login,
 	},
-	Route{
+	/*Route{
 		"Refresh",
 		"GET",
 		"/refresh_token_auth",
@@ -31,7 +31,7 @@ var routes = Routes{
 		"GET",
 		"/logout",
 		Logout,
-	},
+	},*/
 	Route{
 		"Index",
 		"GET",
@@ -79,6 +79,12 @@ var routes = Routes{
 		"GET",
 		"/list/{what}",
 		List,
+	},
+	Route{
+		"JSONList",
+		"GET",
+		"/jsonlist/{what}",
+		JSONList,
 	},
 	Route{
 		"Counters",

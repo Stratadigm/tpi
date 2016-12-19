@@ -2,11 +2,13 @@ package tpi
 
 import (
 	"github.com/gorilla/mux"
+	"github.com/stratadigm/tpi_auth"
+	"github.com/urfave/negroni"
 	"net/http"
 	"regexp"
 )
 
-var validPath = regexp.MustCompile(`^/(create|list|users|counters|postform|getform|image|logs)?/?(.*)$`)
+var validPath = regexp.MustCompile(`^/(create|jsonlist|list|users|counters|postform|getform|image|logs)?/?(.*)$`)
 
 func NewRouter() *mux.Router {
 
@@ -18,6 +20,21 @@ func NewRouter() *mux.Router {
 
 		router.Methods(route.Method).Path(route.Pattern).Name(route.Name).Handler(handler)
 	}
+	router.Handle("/refresh_token_auth",
+		negroni.New(
+			negroni.HandlerFunc(tpi_auth.RequireTokenAuthentication),
+			negroni.HandlerFunc(RefreshToken),
+		)).Methods("GET")
+	router.Handle("/logout",
+		negroni.New(
+			negroni.HandlerFunc(tpi_auth.RequireTokenAuthentication),
+			negroni.HandlerFunc(Logout),
+		)).Methods("GET")
+	router.Handle("/hello",
+		negroni.New(
+			negroni.HandlerFunc(tpi_auth.RequireTokenAuthentication),
+			negroni.HandlerFunc(Hello),
+		)).Methods("GET")
 	return router
 }
 
