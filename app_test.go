@@ -26,7 +26,7 @@ func TestCRUDUser(t *testing.T) {
 	}
 	//Create
 	//req, err := http.NewRequest("POST", "https://thalipriceindex.appspot.com/create/user", &buf)
-	req, err := http.NewRequest("POST", "http://192.168.0.9:8080/create/user", &buf)
+	req, err := http.NewRequest("POST", "https://thalipriceindex.appspot.com/create/user", &buf)
 	if err != nil {
 		t.Errorf("Request : %v", err)
 	}
@@ -97,7 +97,7 @@ func TestCRUDData(t *testing.T) {
 func TestLogin(t *testing.T) {
 
 	var err error
-	g1 := &tpi_data.User{Name: "Rafa", Email: "rafa@fed.com", Password: "allurbase"}
+	g1 := &tpi_data.User{Name: "Rafa", Email: "rafael@fed.com", Password: "allurbase"}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	err = enc.Encode(g1)
@@ -105,7 +105,8 @@ func TestLogin(t *testing.T) {
 		t.Errorf("Encode json : %v", err)
 	}
 	//Login
-	req, err := http.NewRequest("POST", "http://192.168.0.9:8080/token_auth", &buf)
+	//req, err := http.NewRequest("POST", "http://192.168.0.9:8080/token_auth", &buf)
+	req, err := http.NewRequest("POST", "https://thalipriceindex.appspot.com/token_auth", &buf)
 	if err != nil {
 		t.Errorf("Request : %v", err)
 	}
@@ -137,7 +138,8 @@ func TestLogin(t *testing.T) {
 	resp.Body.Close()
 
 	//Test token
-	req, err = http.NewRequest("GET", "http://192.168.0.9:8080/hello", nil)
+	//req, err = http.NewRequest("GET", "http://192.168.0.9:8080/hello", nil)
+	req, err = http.NewRequest("GET", "https://thalipriceindex.appspot.com/hello", nil)
 	if err != nil {
 		t.Errorf("Request : %v", err)
 	}

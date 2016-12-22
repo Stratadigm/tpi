@@ -71,6 +71,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(tpi_services.RefreshToken(c, requestUser))
+
 }
 
 func Logout(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
@@ -193,6 +194,7 @@ func Create(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	defer r.Body.Close()
 	err = decoder.Decode(g1)
+	log.Errorf(c, "Creating: %v", g1)
 	if err != nil {
 		log.Errorf(c, "Couldn't decode posted json: %v\n", err)
 		w.WriteHeader(http.StatusBadRequest)
