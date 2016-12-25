@@ -48,6 +48,7 @@ type Render struct { //for most purposes
 	Average float64 `json:"average"`
 }
 
+//Login handles POST requests to login. POST requests must consist of User email and password and reply consists of token (200 OK) if email/password combination is correct and 401 Unauthorized if incorrect.
 func Login(w http.ResponseWriter, r *http.Request) {
 
 	c := appengine.NewContext(r)
@@ -59,9 +60,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	responseStatus, token := tpi_services.Login(c, requestUser)
 	//w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(responseStatus)
+	//enc := json.Encoder(w)
+	//if err := enc.Encode(token); err != nil {
+	//	log.Errorf(c, "Login json encode %v \n", err)
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//}
 	w.Write(token)
+	return
 }
 
+//RefreshToken handles GET requests to refresh token
 func RefreshToken(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
 	c := appengine.NewContext(r)
@@ -74,6 +82,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request, next http.HandlerFunc)
 
 }
 
+//Logout handles GET requests to logout.
 func Logout(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
 	c := appengine.NewContext(r)
@@ -84,8 +93,10 @@ func Logout(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	} else {
 		w.WriteHeader(http.StatusOK)
 	}
+
 }
 
+//Hello handles GET requests to test whether token generation and authentication is working as expected.
 func Hello(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
 	//c := appengine.NewContext(r)

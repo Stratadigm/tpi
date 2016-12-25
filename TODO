@@ -1,0 +1,13 @@
+
+1. Login & Registration both have 'Make User' title
+2. Registration doesn't display the error returned by server - just shows null
+3. Responses from server not displayed after most requests. 
+4. Login doesn't work at all - TODO
+5. Add Venue doesn't display response from server whether successful or unsuccessful
+6. List of Thali and Add Thali tabs need to have their labels swapped
+7. List of Thalis & List of Venues to be in either tabular format or better formatted (for eg. thali can include small photo if available). A future version can perhaps provide an option to include the photo and use side swipe to go through list. 
+8. Thali mis-spelt as Thail in various places
+9. Add Photo returns 404
+10. Provided apk needs to install properly and not crash on app start.
+
+

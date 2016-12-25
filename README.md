@@ -80,6 +80,7 @@ Data contribution, edit & retrieval is done via a simple HTTP/S REST JSON API.
 ##VALIDATION##
 https://thalipriceindex.appspot.com/token_auth
 https://thalipriceindex.appspot.com/refresh_token_auth
+https://thalipriceindex.appspot.com/hello
 https://thalipriceindex.appspot.com/logout
 
 ##CREATE (POST ONLY)##

@@ -17,7 +17,7 @@ import (
 func TestCRUDUser(t *testing.T) {
 
 	var err error
-	g1 := &tpi_data.User{Name: "Roger", Email: "rafa@fed.com", Password: "allurbase", Confirmed: true, Rep: 0}
+	g1 := &tpi_data.User{Name: "Roger", Email: "dec@ember.com", Password: "allurbase", Confirmed: false, Rep: 0}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	err = enc.Encode(g1)
@@ -84,6 +84,7 @@ func TestCRUDVenue(t *testing.T) {
 	//Update
 
 	//Delete
+
 }
 
 func TestCRUDThali(t *testing.T) {
@@ -97,7 +98,7 @@ func TestCRUDData(t *testing.T) {
 func TestLogin(t *testing.T) {
 
 	var err error
-	g1 := &tpi_data.User{Name: "Rafa", Email: "rafael@fed.com", Password: "allurbase"}
+	g1 := &tpi_data.User{Name: "Roger", Email: "dec@ember.com", Password: "allurbase"}
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
 	err = enc.Encode(g1)
@@ -127,13 +128,16 @@ func TestLogin(t *testing.T) {
 	if err != nil {
 		t.Errorf("Content Length err: %v", err)
 	}
-	tok := make([]byte, icl)
-	dec := bufio.NewReader(resp.Body)
-	_, err = dec.Read(tok)
+	//tok := make([]byte, icl)
+	//dec := bufio.NewReader(resp.Body)
+	//_, err = dec.Read(tok)
+	tok := &tpi_data.AuthToken{}
+	dec := json.NewDecoder(resp.Body)
+	err = dec.Decode(tok)
 	if err != nil {
 		t.Errorf("Json resp err: %v", err)
 	} //else {
-	//	t.Errorf("Json token: %v", string(tok))
+	//	t.Errorf("Json token: %v", tok)
 	//}
 	resp.Body.Close()
 
@@ -143,7 +147,8 @@ func TestLogin(t *testing.T) {
 	if err != nil {
 		t.Errorf("Request : %v", err)
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", string(tok))) // Authorized
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", tok.Token)) // Authorized
+	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", string(tok))) // Authorized
 	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", "abcd")) // Unauthorized
 	//req.Header.Set("Content-Type", "application/json")
 
@@ -162,10 +167,12 @@ func TestLogin(t *testing.T) {
 		t.Errorf("Content Length err: %v", err)
 	}
 	hw := make([]byte, icl)
-	dec = bufio.NewReader(resp.Body)
-	_, err = dec.Read(hw)
+	bdec := bufio.NewReader(resp.Body)
+	_, err = bdec.Read(hw)
 	if err != nil {
-		t.Errorf("Json resp err: %v", err)
+		t.Errorf("Read resp err: %v", err)
+	} else {
+		t.Errorf("Read success: %v\n", string(hw))
 	}
 
 }
