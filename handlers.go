@@ -21,6 +21,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"reflect"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -37,6 +38,7 @@ var (
 	tmpl_thaliform  = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/thaliform"))
 	tmpl_uploadform = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/uploadform"))
 	tmpl_image      = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/image"))
+	validEmail      = regexp.MustCompile("^.*@.*\\.(com|org|in|mail|io)$")
 )
 
 const thanksMessage = `Thanks for input.`
@@ -57,6 +59,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.Decode(&requestUser)
 
+	m := validEmail.FindStringSubmatch(requestUser.Email)
+	if m == nil {
+		log.Errorf(c, "Invalid email posted: %v\n", requestUser.Email)
+		w.WriteHeader(http.StatusUnauthorized)
+		w.Write([]byte("Invalid Email"))
+		return
+	}
+
 	responseStatus, token := tpi_services.Login(c, requestUser)
 	//w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(responseStatus)
@@ -67,6 +77,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	//}
 	w.Write(token)
 	return
+
 }
 
 //RefreshToken handles GET requests to refresh token
