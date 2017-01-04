@@ -154,7 +154,7 @@ func ExampleLoginFail() {
 	if err != nil {
 		fmt.Printf("Request : %v", err)
 	}
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", tok)) // Authorized
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", string(tok))) // Authorized
 	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", string(tok))) // Authorized
 	//req.Header.Set("Authorization", fmt.Sprintf("Bearer %v", "abcd")) // Unauthorized
 	//req.Header.Set("Content-Type", "application/json")
@@ -169,18 +169,8 @@ func ExampleLoginFail() {
 	if resp.StatusCode != http.StatusOK {
 		fmt.Printf("Response: %v", resp.Status)
 	}
-	cl := resp.Header.Get("Content-Length")
-	icl, err := strconv.Atoi(cl)
-	if err != nil {
-		fmt.Printf("Content Length err: %v", err)
-	}
-	hw := make([]byte, icl)
-	bdec := bufio.NewReader(resp.Body)
-	_, err = bdec.Read(hw)
-	fmt.Println(string(hw))
 
 	//Output:
-	//dec@ember.com 231
-	//Hello, World!
+	//Response: 401 Unauthorized
 
 }

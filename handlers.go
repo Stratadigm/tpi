@@ -35,6 +35,7 @@ var (
 	tmpl_datas      = template.Must(template.ParseFiles("templates/datas"))
 	tmpl_cntrs      = template.Must(template.ParseFiles("templates/counters"))
 	tmpl_userform   = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/userform"))
+	tmpl_venueform  = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/venueform"))
 	tmpl_thaliform  = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/thaliform"))
 	tmpl_uploadform = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/uploadform"))
 	tmpl_image      = template.Must(template.ParseFiles("templates/cmn/base", "templates/cmn/body", "templates/image"))
@@ -523,7 +524,7 @@ func JSONList(w http.ResponseWriter, r *http.Request) {
 	if offset := r.FormValue("offset"); offset != "" {
 		offint, err = strconv.Atoi(offset)
 		if err != nil {
-			log.Errorf(c, "Reading user records offset: %v", err)
+			log.Errorf(c, "Reading records offset: %v", err)
 		}
 	}
 
@@ -559,8 +560,111 @@ func JSONList(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case "/jsonlist/thalis":
+		venueid := int64(0)
+		if venueId := r.FormValue("venue"); venueId != "" {
+			venueid, err = strconv.ParseInt(venueId, 10, 64)
+			if err != nil {
+				log.Errorf(c, "Reading venue id: %v", err)
+			}
+		}
 		g1 := make([]tpi_data.Thali, 1)
+		if err = adsc.FilteredList(&g1, "VenueId =", venueid, offint); err != nil {
+			//if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list thalis: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list thalis json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(&g1); err != nil {
+			log.Errorf(c, "json list thalis encode: %v", err)
+		}
+		return
+	case "/jsonlist/datas":
+		g1 := make([]tpi_data.Data, 1)
 		if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list data: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list datas json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(&g1); err != nil {
+			log.Errorf(c, "json list datas encode: %v", err)
+		}
+		return
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+			log.Errorf(c, "json list bad path err: %v", err1)
+		}
+		return
+	}
+
+}
+
+//JSONFilteredList writes list of Users/Venues/Thalis/Data in html to the response writer
+func JSONFilteredList(w http.ResponseWriter, r *http.Request) {
+
+	c := appengine.NewContext(r)
+	w.Header().Set("Content-Type", "application/json")
+	enc := json.NewEncoder(w)
+	adsc := tpi_data.NewDSwc(c) //&DS{Ctx: c}
+	var err error
+
+	offint := 0
+	if offset := r.FormValue("offset"); offset != "" {
+		offint, err = strconv.Atoi(offset)
+		if err != nil {
+			log.Errorf(c, "Reading records offset: %v", err)
+		}
+	}
+
+	switch r.URL.Path {
+	case "/jsonlist/users":
+		g1 := make([]tpi_data.User, 1)
+		if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list users: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list users json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(g1); err != nil {
+			log.Errorf(c, "json list users encode: %v", err)
+		}
+		return
+	case "/jsonlist/venues":
+		g1 := make([]tpi_data.Venue, 1)
+		if err = adsc.List(&g1, offint); err != nil {
+			log.Errorf(c, "json list venues: %v", err)
+			w.WriteHeader(http.StatusBadRequest)
+			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
+				log.Errorf(c, "json list venues json encode err: %v", err1)
+			}
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		if err := enc.Encode(&g1); err != nil {
+			log.Errorf(c, "json list venues encode: %v", err)
+		}
+		return
+	case "/jsonlist/thalis":
+		venueid := int64(0)
+		if venueId := r.FormValue("venue"); venueId != "" {
+			venueid, err = strconv.ParseInt(venueId, 10, 64)
+			if err != nil {
+				log.Errorf(c, "Reading venue id: %v", err)
+			}
+		}
+		g1 := make([]tpi_data.Thali, 1)
+		if err = adsc.FilteredList(&g1, "VenueId =", venueid, offint); err != nil {
 			log.Errorf(c, "json list thalis: %v", err)
 			w.WriteHeader(http.StatusBadRequest)
 			if err1 := enc.Encode(&tpi_data.DSErr{time.Now(), "Error " + err.Error()}); err1 != nil {
@@ -740,7 +844,7 @@ func GetForm(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	case "venue":
-		if err = tmpl_thaliform.ExecuteTemplate(w, "base", map[string]interface{}{"Message": thanksMessage}); err != nil {
+		if err = tmpl_venueform.ExecuteTemplate(w, "base", map[string]interface{}{"Message": thanksMessage}); err != nil {
 			tmpl_err.Execute(w, map[string]interface{}{"Message": "Bad get venue form : " + err.Error()})
 			return
 		}
