@@ -103,7 +103,7 @@ func ExampleLoginToken() {
 	}
 
 	claims := token.Claims.(*tpi_auth.TPIClaims)
-	fmt.Println(claims.UserInfo.Email, claims.StandardClaims.ExpiresAt, time.Now().Unix())
+	fmt.Println(claims.UserInfo.Email, claims.StandardClaims.ExpiresAt-time.Now().Unix())
 
 	//Test token
 	//req, err = http.NewRequest("GET", "http://192.168.0.9:8080/hello", nil)
@@ -136,7 +136,7 @@ func ExampleLoginToken() {
 	fmt.Println(string(hw))
 
 	//Output:
-	//dec@ember.com 231
+	//dec@ember.com 478
 	//Hello, World!
 
 }
